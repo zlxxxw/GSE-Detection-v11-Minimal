@@ -3,7 +3,7 @@ from ultralytics import YOLO
 import os
 
 # 1. 设置
-video_path = "data/video_data/*.webm"    # 视频数据路径 (支持通配符)
+video_path = r"H:\GSE论文资料\实验\video_data\*.webm"    # 视频数据路径 (支持通配符)
 output_txt = "data/result/my_video.txt" # 结果保存路径
 os.makedirs("data/result", exist_ok=True)
 

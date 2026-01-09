@@ -3,7 +3,7 @@ from ultralytics import YOLO
 import os
 
 # --- 配置区域 ---
-video_path = "data/video_data/*.webm"   # 视频数据路径 (支持通配符)
+video_path = r"H:\GSE论文资料\实验\video_data\*.webm"   # 视频数据路径 (支持通配符)
 output_gt  = "data/result/draft_gt.txt" # 输出的草稿文件
 model_path = "weights/gse_detection_v11.pt"       # 你的模型
 # ----------------
