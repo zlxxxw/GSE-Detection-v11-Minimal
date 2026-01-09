@@ -8,6 +8,7 @@ ultralytics>=8.3.0
 opencv-python>=4.8.0
 numpy>=1.24.0
 pyyaml>=6.0
+tqdm>=4.60.0  # 进度条显示
 
 # Optional: For GPU acceleration
 # CUDA 11.8: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
