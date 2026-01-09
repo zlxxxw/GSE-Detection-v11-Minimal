@@ -147,6 +147,9 @@ class DraftGTGenerator:
                         f.write(line)
                         tracked_count += 1
         
+        # [新增] 自动生成 seqinfo.ini (TrackEval 评测工具需要)
+        self._write_seqinfo(video_path, output_dir, width, height, fps, total_frames)
+        
         # 完成提示
         print(f"\n✅ 预标注完成！")
         print(f"📊 统计信息:")
@@ -156,6 +159,43 @@ class DraftGTGenerator:
         print(f"\n💡 提示: 请使用标注工具 (如 DarkLabel) 打开此文件进行人工修正")
         
         return output_path
+    
+    def _write_seqinfo(self, video_path, output_dir, width, height, fps, total_frames):
+        """
+        生成 TrackEval 所需的 seqinfo.ini 文件
+        
+        MOT Challenge 评测工具需要此文件来获取视频的元信息：
+        - 视频名称
+        - 帧率
+        - 总帧数
+        - 分辨率 (宽 x 高)
+        
+        Args:
+            video_path: 视频文件路径
+            output_dir: 输出目录
+            width: 视频宽度 (像素)
+            height: 视频高度 (像素)
+            fps: 帧率 (frames per second)
+            total_frames: 总帧数
+        """
+        video_name = Path(video_path).stem
+        seqinfo_path = Path(output_dir) / "seqinfo.ini"
+        
+        # MOT Challenge 标准的 seqinfo.ini 格式
+        content = f"""[Sequence]
+name={video_name}
+imDir=img1
+frameRate={fps}
+seqLength={total_frames}
+imWidth={width}
+imHeight={height}
+imExt=.jpg
+"""
+        
+        with open(seqinfo_path, 'w') as f:
+            f.write(content)
+        
+        print(f"   📝 已生成配置文件: {seqinfo_path.name}")
 
 
 def main():

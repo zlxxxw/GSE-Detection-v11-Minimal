@@ -111,6 +111,97 @@ CLASS_NAMES = {
 DEVICE = None  # None=自动检测，"cuda"/"cpu"/"mps"
 ```
 
+## 🎬 批量视频处理与标注生成
+
+### 生成 MOT Challenge 格式的草稿标注
+
+项目提供了两个强大的批量处理工具：
+
+#### gen_draft_gt.py - 生成标注文件 + seqinfo.ini
+
+```bash
+# 一键处理整个视频目录！
+python gen_draft_gt.py --video "H:\GSE论文资料\实验\video_data"
+
+# 强制覆盖已存在的文件
+python gen_draft_gt.py --video "path" --force
+
+# 调整置信度阈值
+python gen_draft_gt.py --video "path" --conf 0.15
+```
+
+**输出文件：**
+- `video_name_gt.txt` - MOT Challenge 格式的标注文件
+- `seqinfo.ini` - TrackEval 评测工具需要的配置文件（自动生成）
+
+**生成的文件示例：**
+
+```
+data/result/
+├── video_01_gt.txt
+├── seqinfo.ini           ← TrackEval 需要此文件！
+├── video_02_gt.txt
+└── seqinfo.ini
+```
+
+#### save_tracks.py - 批量提取追踪信息
+
+```bash
+python save_tracks.py
+python save_tracks.py --video "H:\custom\path" --conf 0.2
+```
+
+**详细指南：** 见 [BATCH_PROCESSING_GUIDE.md](BATCH_PROCESSING_GUIDE.md)
+
+## 📊 TrackEval 评测工具集成
+
+### seqinfo.ini 文件说明
+
+`gen_draft_gt.py` 现已自动生成 **seqinfo.ini** 文件，这是 MOT Challenge 评测工具（如 TrackEval）的必需配置文件。
+
+**自动生成的 seqinfo.ini 内容：**
+
+```ini
+[Sequence]
+name=video_name          # 视频文件名
+imDir=img1               # 图片目录 (MOT标准格式)
+frameRate=30             # 帧率
+seqLength=1500           # 总帧数
+imWidth=1920             # 视频宽度
+imHeight=1080            # 视频高度
+imExt=.jpg               # 图片扩展名 (MOT标准)
+```
+
+### MOT Challenge 格式详解
+
+输出的 `_gt.txt` 文件遵循标准 MOT Challenge 格式：
+
+```
+frame_idx,track_id,x1,y1,w,h,conf,class_id,-1,-1
+```
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| frame_idx | 帧号 (从1开始) | 1, 2, 3... |
+| track_id | 追踪ID | 1, 2, 3... |
+| x1, y1 | 左上角坐标 | 100.5, 200.5 |
+| w, h | 宽度和高度 | 50.0, 80.0 |
+| conf | 置信度 | 0.85 |
+| class_id | 物体类别ID | 0, 1, 2, 3 |
+| -1, -1 | MOT标准占位符 | -1, -1 |
+
+### 坐标系统
+
+注意：YOLO 输出的是**中心坐标**，脚本已自动转换为**左上角坐标**：
+
+```python
+# 转换公式
+x1 = x_center - w / 2
+y1 = y_center - h / 2
+```
+
+
+
 ## 🔧 核心API
 
 ### GSEDetector 类
@@ -245,6 +336,18 @@ for frame in video_frames:
 **Q: 模型文件不存在怎么办？**  
 A: 需要从原项目手动复制 `gse_detection_v11.pt` 到 `weights/` 目录。
 
+**Q: 如何使用 TrackEval 评测标注效果？**  
+A: 
+1. 运行 `gen_draft_gt.py` 生成 `_gt.txt` 和 `seqinfo.ini` 文件
+2. TrackEval 会自动读取 seqinfo.ini 获取视频元信息（宽、高、帧率、长度）
+3. 具体评测流程见第三步文档
+
+**Q: seqinfo.ini 文件的作用是什么？**  
+A: TrackEval 评测工具需要通过该文件获取视频的基本信息（帧率、分辨率、总帧数等）。`gen_draft_gt.py` 现已自动生成此文件，无需手动编辑。
+
+**Q: 输出文件的 class_id 列是什么用途？**  
+A: MOT 格式的第8列通常用于3D坐标信息。这里用 class_id 填充，便于区分不同类型的物体（0=Galley_Truck, 1=GSE, 2=Ground_Crew, 3=airplane）。如果使用的评测工具对这列有特殊要求，可以在代码中改为 -1。
+
 **Q: 如何提升推理速度？**  
 A: 
 - 使用 GPU (CUDA)
@@ -257,6 +360,11 @@ A: 编辑 `config.py` 或在推理时传入参数。
 
 **Q: 支持哪些视频格式？**  
 A: OpenCV支持的所有格式 (mp4, avi, mov, mkv等)
+
+**Q: 如何处理多个视频目录？**  
+A: 对每个目录分别运行 `gen_draft_gt.py --video "path"`，输出文件会自动保存在各自目录。
+
+
 
 ## 📞 联系与支持
 
