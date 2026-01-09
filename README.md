@@ -372,5 +372,53 @@ A: 对每个目录分别运行 `gen_draft_gt.py --video "path"`，输出文件�
 
 ---
 
+## 📝 更新日志
+
+### v1.2 - TrackEval 评测支持 (2026-01-09)
+
+**新增功能：**
+- ✅ `gen_draft_gt.py` 现已自动生成 **seqinfo.ini** 文件
+  - TrackEval 评测工具的必需配置文件
+  - 包含视频名称、帧率、分辨率、总帧数等信息
+  - 自动从视频元数据提取，无需手动编辑
+- ✅ 完整的批量视频处理流程支持
+- ✅ 详细的 MOT Challenge 格式文档
+
+**改进：**
+- 更新 README.md 增加 TrackEval 集成说明
+- 增加常见问题解答
+- 完整的文件格式参考
+
+**使用示例：**
+```bash
+python gen_draft_gt.py --video "H:\video_data"
+# 输出: video_name_gt.txt 和 seqinfo.ini
+```
+
+---
+
+### v1.1 - 批量处理能力 (2026-01-09)
+
+**新增脚本：**
+- `save_tracks.py` - 批量提取追踪信息
+- `gen_draft_gt.py` - 生成标注文件（支持目录批处理）
+
+**新增文档：**
+- `BATCH_PROCESSING_GUIDE.md` - 详细使用指南
+- `QUICK_REFERENCE.md` - 快速参考卡片
+
+---
+
+### v1.0 - 初始发布 (2026-01-09)
+
+**包含内容：**
+- 核心检测模型 (gse_detection_v11.pt)
+- GSEDetector 类
+- 快速演示脚本
+- 模型自测脚本
+
+---
+
 **最后更新**: 2026年1月9日  
+**当前版本**: v1.2  
 **主模型**: gse_detection_v11.pt (YOLOv11)
