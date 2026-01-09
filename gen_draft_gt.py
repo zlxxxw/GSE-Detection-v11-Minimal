@@ -161,34 +161,43 @@ class DraftGTGenerator:
 def main():
     """
     主函数 - 命令行入口
+    支持单个文件和文件夹批量处理
     """
     parser = argparse.ArgumentParser(
         description="生成草稿标注文件 (Generate Draft Ground Truth)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  # 指定视频文件
+  # 处理单个视频文件
   python gen_draft_gt.py --video video.webm
   
-  # 完整路径
-  python gen_draft_gt.py --video H:/GSE论文资料/实验/video_data/video.webm
+  # 处理视频目录 (推荐)
+  python gen_draft_gt.py --video H:/GSE论文资料/实验/video_data
   
-  # 自定义输出路径
-  python gen_draft_gt.py --video video.webm --output custom_gt.txt
+  # 完整路径
+  python gen_draft_gt.py --video H:\\GSE论文资料\\实验\\video_data\\video.webm
   
   # 调整置信度阈值
-  python gen_draft_gt.py --video video.webm --conf 0.2
+  python gen_draft_gt.py --video video_dir --conf 0.2
+  
+  # 跳过已存在的标注
+  python gen_draft_gt.py --video video_dir
+  
+  # 强制覆盖已存在的标注
+  python gen_draft_gt.py --video video_dir --force
         """
     )
     
     parser.add_argument('--video', '-v', type=str, required=True,
-                        help='输入视频路径 (必需)')
+                        help='输入视频路径 (文件或目录)')
     parser.add_argument('--output', '-o', type=str, default=None,
-                        help='输出标注文件路径 (可选，默认使用视频同名)')
+                        help='输出标注文件路径 (单文件模式时使用，默认使用视频同名)')
     parser.add_argument('--conf', type=float, default=0.1,
                         help='置信度阈值 (默认 0.1，范围 0.0-1.0)')
     parser.add_argument('--model', '-m', type=str, default=None,
                         help='模型路径 (可选，默认使用 config.MODEL_PATH)')
+    parser.add_argument('--force', '-f', action='store_true',
+                        help='强制覆盖已存在的标注文件')
     
     args = parser.parse_args()
     
@@ -200,20 +209,120 @@ def main():
     # 创建生成器
     generator = DraftGTGenerator(model_path=args.model)
     
-    # 处理视频
-    output_file = generator.process_video(
-        video_path=args.video,
-        output_path=args.output,
-        conf_threshold=args.conf
-    )
+    # 判断输入是文件还是目录
+    input_path = Path(args.video)
     
-    if output_file is None:
+    if not input_path.exists():
+        print(f"❌ 错误: 路径不存在: {args.video}")
         return 1
     
-    print(f"\n🎉 任务完成！")
-    print(f"📁 输出文件已保存: {Path(output_file).absolute()}")
+    # 文件模式：处理单个视频
+    if input_path.is_file():
+        output_file = generator.process_video(
+            video_path=str(input_path),
+            output_path=args.output,
+            conf_threshold=args.conf
+        )
+        
+        if output_file is None:
+            return 1
+        
+        print(f"\n🎉 任务完成！")
+        print(f"📁 输出文件已保存: {Path(output_file).absolute()}")
+        return 0
     
-    return 0
+    # 目录模式：批量处理所有视频
+    if input_path.is_dir():
+        return _process_video_directory(
+            generator=generator,
+            video_dir=input_path,
+            conf_threshold=args.conf,
+            force_overwrite=args.force
+        )
+    
+    return 1
+
+
+def _process_video_directory(generator, video_dir, conf_threshold=0.1, force_overwrite=False):
+    """
+    批量处理视频目录
+    
+    Args:
+        generator: DraftGTGenerator 实例
+        video_dir: 视频目录路径
+        conf_threshold: 置信度阈值
+        force_overwrite: 是否强制覆盖已存在的文件
+    
+    Returns:
+        返回码 (0: 成功, 1: 失败)
+    """
+    video_dir = Path(video_dir)
+    
+    # 查找所有视频文件
+    video_files = []
+    for ext in ['*.webm', '*.mp4', '*.avi', '*.mov']:
+        video_files.extend(video_dir.glob(f"**/{ext}"))
+        video_files.extend(video_dir.glob(f"**/{ext.upper()}"))
+    
+    video_files = sorted(list(set(video_files)))  # 去重并排序
+    
+    if not video_files:
+        print(f"❌ 错误: 未找到视频文件 ({video_dir})")
+        return 1
+    
+    print(f"🎬 找到 {len(video_files)} 个视频文件\n")
+    
+    # 统计信息
+    success_count = 0
+    skip_count = 0
+    fail_count = 0
+    output_files = []
+    
+    # 批量处理
+    for idx, video_file in enumerate(video_files, 1):
+        # 输出标注文件路径 (与视频同目录)
+        output_path = video_file.parent / f"{video_file.stem}_gt.txt"
+        
+        print(f"[{idx}/{len(video_files)}] 📹 {video_file.name}")
+        
+        # 检查文件是否已存在
+        if output_path.exists() and not force_overwrite:
+            print(f"           ⏭️  跳过 (文件已存在，使用 --force 强制覆盖)")
+            skip_count += 1
+            print()
+            continue
+        
+        # 处理视频
+        output_file = generator.process_video(
+            video_path=str(video_file),
+            output_path=str(output_path),
+            conf_threshold=conf_threshold
+        )
+        
+        if output_file is None:
+            fail_count += 1
+        else:
+            success_count += 1
+            output_files.append(output_file)
+        
+        print()
+    
+    # 最终统计
+    print(f"{'='*70}")
+    print(f"📊 批量处理完成！")
+    print(f"   ✅ 成功: {success_count} 个")
+    print(f"   ⏭️  跳过: {skip_count} 个")
+    print(f"   ❌ 失败: {fail_count} 个")
+    print(f"   📁 视频目录: {video_dir.absolute()}")
+    
+    if output_files:
+        print(f"\n📄 生成的文件:")
+        for output_file in output_files:
+            print(f"   ✓ {Path(output_file).name}")
+    
+    print(f"{'='*70}\n")
+    
+    return 0 if fail_count == 0 else 1
 
 
 if __name__ == '__main__':
