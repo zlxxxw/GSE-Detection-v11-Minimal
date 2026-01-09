@@ -1,0 +1,55 @@
+# 模型文件（太大，不需要上传到 GitHub）
+weights/*.pt
+weights/*.pth
+*.pt
+*.pth
+
+# Python 相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 数据和输出
+results/
+output/
+*.csv
+*.json
+video_output*/
+
+# 缓存
+*.cache
+.cache/
